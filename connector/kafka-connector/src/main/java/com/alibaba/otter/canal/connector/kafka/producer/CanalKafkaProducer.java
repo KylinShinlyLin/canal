@@ -50,7 +50,7 @@ public class CanalKafkaProducer extends AbstractMQProducer implements CanalMQPro
 
     @Override
     public void init(Properties properties) {
-        logger.info("初始化kafka生产者,配置：{}", properties);
+        logger.info("初始化kafka生产者,配置：{}", JSON.toJSONString(properties));
         KafkaProducerConfig kafkaProducerConfig = new KafkaProducerConfig();
         this.mqProperties = kafkaProducerConfig;
         super.init(properties);
@@ -77,6 +77,7 @@ public class CanalKafkaProducer extends AbstractMQProducer implements CanalMQPro
             }
         }
         kafkaProperties.put("value.serializer", KafkaMessageSerializer.class);
+        logger.info("创建kafka的配置：{}", JSON.toJSONString(kafkaProperties));
         producer = new KafkaProducer<>(kafkaProperties);
     }
 

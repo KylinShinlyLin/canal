@@ -1,21 +1,20 @@
 package com.alibaba.otter.canal.deployer;
 
+import com.alibaba.otter.canal.common.utils.AddressUtils;
+import com.alibaba.otter.canal.common.utils.NamedThreadFactory;
+import com.alibaba.otter.canal.instance.manager.plain.PlainCanal;
+import com.alibaba.otter.canal.instance.manager.plain.PlainCanalConfigClient;
+import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.FileInputStream;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.otter.canal.common.utils.AddressUtils;
-import com.alibaba.otter.canal.common.utils.NamedThreadFactory;
-import com.alibaba.otter.canal.instance.manager.plain.PlainCanal;
-import com.alibaba.otter.canal.instance.manager.plain.PlainCanalConfigClient;
 
 /**
  * canal独立版本启动的入口类
@@ -25,11 +24,11 @@ import com.alibaba.otter.canal.instance.manager.plain.PlainCanalConfigClient;
  */
 public class CanalLauncher {
 
-    private static final String             CLASSPATH_URL_PREFIX = "classpath:";
-    private static final Logger             logger               = LoggerFactory.getLogger(CanalLauncher.class);
-    public static final CountDownLatch      runningLatch         = new CountDownLatch(1);
-    private static ScheduledExecutorService executor             = Executors.newScheduledThreadPool(1,
-                                                                     new NamedThreadFactory("canal-server-scan"));
+    private static final String CLASSPATH_URL_PREFIX = "classpath:";
+    private static final Logger logger = LoggerFactory.getLogger(CanalLauncher.class);
+    public static final CountDownLatch runningLatch = new CountDownLatch(1);
+    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(1,
+            new NamedThreadFactory("canal-server-scan"));
 
     public static void main(String[] args) {
         try {
@@ -53,31 +52,31 @@ public class CanalLauncher {
                 String passwd = CanalController.getProperty(properties, CanalConstants.CANAL_ADMIN_PASSWD);
                 String adminPort = CanalController.getProperty(properties, CanalConstants.CANAL_ADMIN_PORT, "11110");
                 boolean autoRegister = BooleanUtils.toBoolean(CanalController.getProperty(properties,
-                    CanalConstants.CANAL_ADMIN_AUTO_REGISTER));
+                        CanalConstants.CANAL_ADMIN_AUTO_REGISTER));
                 String autoCluster = CanalController.getProperty(properties, CanalConstants.CANAL_ADMIN_AUTO_CLUSTER);
                 String registerIp = CanalController.getProperty(properties, CanalConstants.CANAL_REGISTER_IP);
                 if (StringUtils.isEmpty(registerIp)) {
                     registerIp = AddressUtils.getHostIp();
                 }
                 final PlainCanalConfigClient configClient = new PlainCanalConfigClient(managerAddress,
-                    user,
-                    passwd,
-                    registerIp,
-                    Integer.parseInt(adminPort),
-                    autoRegister,
-                    autoCluster);
+                        user,
+                        passwd,
+                        registerIp,
+                        Integer.parseInt(adminPort),
+                        autoRegister,
+                        autoCluster);
                 PlainCanal canalConfig = configClient.findServer(null);
                 if (canalConfig == null) {
                     throw new IllegalArgumentException("managerAddress:" + managerAddress
-                                                       + " can't not found config for [" + registerIp + ":" + adminPort
-                                                       + "]");
+                            + " can't not found config for [" + registerIp + ":" + adminPort
+                            + "]");
                 }
                 Properties managerProperties = canalConfig.getProperties();
                 // merge local
                 managerProperties.putAll(properties);
                 int scanIntervalInSecond = Integer.valueOf(CanalController.getProperty(managerProperties,
-                    CanalConstants.CANAL_AUTO_SCAN_INTERVAL,
-                    "5"));
+                        CanalConstants.CANAL_AUTO_SCAN_INTERVAL,
+                        "5"));
                 executor.scheduleWithFixedDelay(new Runnable() {
 
                     private PlainCanal lastCanalConfig;
