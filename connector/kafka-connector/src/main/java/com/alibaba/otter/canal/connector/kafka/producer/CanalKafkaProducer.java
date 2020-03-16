@@ -1,22 +1,5 @@
 package com.alibaba.otter.canal.connector.kafka.producer;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.otter.canal.common.utils.ExecutorTemplate;
@@ -32,6 +15,22 @@ import com.alibaba.otter.canal.connector.kafka.config.KafkaConstants;
 import com.alibaba.otter.canal.connector.kafka.config.KafkaProducerConfig;
 import com.alibaba.otter.canal.protocol.FlatMessage;
 import com.alibaba.otter.canal.protocol.Message;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * kafka producer SPI 实现
@@ -39,18 +38,19 @@ import com.alibaba.otter.canal.protocol.Message;
  * @author rewerma 2018-6-11 下午05:30:49
  * @version 1.0.0
  */
-@SuppressWarnings({ "rawtypes", "unchecked" })
+@SuppressWarnings({"rawtypes", "unchecked"})
 @SPI("kafka")
 public class CanalKafkaProducer extends AbstractMQProducer implements CanalMQProducer {
 
-    private static final Logger      logger              = LoggerFactory.getLogger(CanalKafkaProducer.class);
+    private static final Logger logger = LoggerFactory.getLogger(CanalKafkaProducer.class);
 
-    private static final String      PREFIX_KAFKA_CONFIG = "kafka.";
+    private static final String PREFIX_KAFKA_CONFIG = "kafka.";
 
     private Producer<String, byte[]> producer;
 
     @Override
     public void init(Properties properties) {
+        logger.info("初始化kafka生产者,配置：{}", properties);
         KafkaProducerConfig kafkaProducerConfig = new KafkaProducerConfig();
         this.mqProperties = kafkaProducerConfig;
         super.init(properties);
@@ -130,8 +130,8 @@ public class CanalKafkaProducer extends AbstractMQProducer implements CanalMQPro
             if (!StringUtils.isEmpty(mqDestination.getDynamicTopic())) {
                 // 动态topic路由计算,只是基于schema/table,不涉及proto数据反序列化
                 Map<String, Message> messageMap = MQMessageUtils.messageTopics(message,
-                    mqDestination.getTopic(),
-                    mqDestination.getDynamicTopic());
+                        mqDestination.getTopic(),
+                        mqDestination.getDynamicTopic());
 
                 // 针对不同的topic,引入多线程提升效率
                 for (Map.Entry<String, Message> entry : messageMap.entrySet()) {
@@ -150,9 +150,9 @@ public class CanalKafkaProducer extends AbstractMQProducer implements CanalMQPro
             } else {
                 result = new ArrayList();
                 List<Future> futures = send(mqDestination,
-                    mqDestination.getTopic(),
-                    message,
-                    mqProperties.isFlatMessage());
+                        mqDestination.getTopic(),
+                        message,
+                        mqProperties.isFlatMessage());
                 result.add(futures);
             }
 
@@ -189,26 +189,26 @@ public class CanalKafkaProducer extends AbstractMQProducer implements CanalMQPro
                 EntryRowData[] datas = MQMessageUtils.buildMessageData(message, executor);
                 // 串行分区
                 Message[] messages = MQMessageUtils.messagePartition(datas,
-                    message.getId(),
-                    mqDestination.getPartitionsNum(),
-                    mqDestination.getPartitionHash(),
-                    this.mqProperties.isDatabaseHash());
+                        message.getId(),
+                        mqDestination.getPartitionsNum(),
+                        mqDestination.getPartitionHash(),
+                        this.mqProperties.isDatabaseHash());
                 int length = messages.length;
                 for (int i = 0; i < length; i++) {
                     Message messagePartition = messages[i];
                     if (messagePartition != null) {
                         records.add(new ProducerRecord<>(topicName,
-                            i,
-                            null,
-                            CanalMessageSerializerUtil.serializer(messagePartition, true)));
+                                i,
+                                null,
+                                CanalMessageSerializerUtil.serializer(messagePartition, true)));
                     }
                 }
             } else {
                 final int partition = mqDestination.getPartition() != null ? mqDestination.getPartition() : 0;
                 records.add(new ProducerRecord<>(topicName,
-                    partition,
-                    null,
-                    CanalMessageSerializerUtil.serializer(message, true)));
+                        partition,
+                        null,
+                        CanalMessageSerializerUtil.serializer(message, true)));
             }
         } else {
             // 发送扁平数据json
@@ -219,21 +219,21 @@ public class CanalKafkaProducer extends AbstractMQProducer implements CanalMQPro
             for (FlatMessage flatMessage : flatMessages) {
                 if (mqDestination.getPartitionHash() != null && !mqDestination.getPartitionHash().isEmpty()) {
                     FlatMessage[] partitionFlatMessage = MQMessageUtils.messagePartition(flatMessage,
-                        mqDestination.getPartitionsNum(),
-                        mqDestination.getPartitionHash(),
-                        this.mqProperties.isDatabaseHash());
+                            mqDestination.getPartitionsNum(),
+                            mqDestination.getPartitionHash(),
+                            this.mqProperties.isDatabaseHash());
                     int length = partitionFlatMessage.length;
                     for (int i = 0; i < length; i++) {
                         FlatMessage flatMessagePart = partitionFlatMessage[i];
                         if (flatMessagePart != null) {
                             records.add(new ProducerRecord<>(topicName, i, null, JSON.toJSONBytes(flatMessagePart,
-                                SerializerFeature.WriteMapNullValue)));
+                                    SerializerFeature.WriteMapNullValue)));
                         }
                     }
                 } else {
                     final int partition = mqDestination.getPartition() != null ? mqDestination.getPartition() : 0;
                     records.add(new ProducerRecord<>(topicName, partition, null, JSON.toJSONBytes(flatMessage,
-                        SerializerFeature.WriteMapNullValue)));
+                            SerializerFeature.WriteMapNullValue)));
                 }
             }
         }

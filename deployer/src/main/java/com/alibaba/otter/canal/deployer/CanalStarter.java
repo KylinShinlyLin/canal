@@ -1,17 +1,16 @@
 package com.alibaba.otter.canal.deployer;
 
-import java.util.Properties;
-
-import com.alibaba.otter.canal.connector.core.config.MQProperties;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.otter.canal.admin.netty.CanalAdminWithNetty;
+import com.alibaba.otter.canal.connector.core.config.MQProperties;
 import com.alibaba.otter.canal.connector.core.spi.CanalMQProducer;
 import com.alibaba.otter.canal.connector.core.spi.ExtensionLoader;
 import com.alibaba.otter.canal.deployer.admin.CanalAdminController;
 import com.alibaba.otter.canal.server.CanalMQStarter;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Properties;
 
 /**
  * Canal server 启动类
@@ -21,21 +20,21 @@ import com.alibaba.otter.canal.server.CanalMQStarter;
  */
 public class CanalStarter {
 
-    private static final Logger logger                    = LoggerFactory.getLogger(CanalStarter.class);
+    private static final Logger logger = LoggerFactory.getLogger(CanalStarter.class);
 
-    private static final String CONNECTOR_SPI_DIR         = "/plugin";
+    private static final String CONNECTOR_SPI_DIR = "/plugin";
     private static final String CONNECTOR_STANDBY_SPI_DIR = "/canal/plugin";
 
-    private CanalController     controller                = null;
-    private CanalMQProducer     canalMQProducer           = null;
-    private Thread              shutdownThread            = null;
-    private CanalMQStarter      canalMQStarter            = null;
+    private CanalController controller = null;
+    private CanalMQProducer canalMQProducer = null;
+    private Thread shutdownThread = null;
+    private CanalMQStarter canalMQStarter = null;
     private volatile Properties properties;
-    private volatile boolean    running                   = false;
+    private volatile boolean running = false;
 
     private CanalAdminWithNetty canalAdmin;
 
-    public CanalStarter(Properties properties){
+    public CanalStarter(Properties properties) {
         this.properties = properties;
     }
 
@@ -62,10 +61,11 @@ public class CanalStarter {
      */
     public synchronized void start() throws Throwable {
         String serverMode = CanalController.getProperty(properties, CanalConstants.CANAL_SERVER_MODE);
+        logger.info("serverMode is :{}", serverMode);
         if (!"tcp".equalsIgnoreCase(serverMode)) {
             ExtensionLoader<CanalMQProducer> loader = ExtensionLoader.getExtensionLoader(CanalMQProducer.class);
             canalMQProducer = loader
-                .getExtension(serverMode.toLowerCase(), CONNECTOR_SPI_DIR, CONNECTOR_STANDBY_SPI_DIR);
+                    .getExtension(serverMode.toLowerCase(), CONNECTOR_SPI_DIR, CONNECTOR_STANDBY_SPI_DIR);
             if (canalMQProducer != null) {
                 ClassLoader cl = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(canalMQProducer.getClass().getClassLoader());
@@ -88,21 +88,18 @@ public class CanalStarter {
         controller = new CanalController(properties);
         controller.start();
         logger.info("## the canal server is running now ......");
-        shutdownThread = new Thread() {
-
-            public void run() {
-                try {
-                    logger.info("## stop the canal server");
-                    controller.stop();
-                    CanalLauncher.runningLatch.countDown();
-                } catch (Throwable e) {
-                    logger.warn("##something goes wrong when stopping canal Server:", e);
-                } finally {
-                    logger.info("## canal server is down.");
-                }
+        //创建一个关闭钩子
+        shutdownThread = new Thread(() -> {
+            try {
+                logger.info("## stop the canal server");
+                controller.stop();
+                CanalLauncher.runningLatch.countDown();
+            } catch (Throwable e) {
+                logger.warn("##something goes wrong when stopping canal Server:", e);
+            } finally {
+                logger.info("## canal server is down.");
             }
-
-        };
+        });
         Runtime.getRuntime().addShutdownHook(shutdownThread);
 
         if (canalMQProducer != null) {
@@ -124,10 +121,10 @@ public class CanalStarter {
             String ip = CanalController.getProperty(properties, CanalConstants.CANAL_IP);
 
             logger.debug("canal admin port:{}, canal admin user:{}, canal admin password: {}, canal ip:{}",
-                port,
-                user,
-                passwd,
-                ip);
+                    port,
+                    user,
+                    passwd,
+                    ip);
 
             CanalAdminWithNetty canalAdminWithNetty = CanalAdminWithNetty.instance();
             canalAdminWithNetty.setCanalAdmin(canalAdmin);
