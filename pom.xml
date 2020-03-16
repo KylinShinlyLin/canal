@@ -107,6 +107,7 @@
         </argline>
         <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
+        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <modules>
