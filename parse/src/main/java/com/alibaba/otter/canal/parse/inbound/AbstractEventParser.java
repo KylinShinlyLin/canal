@@ -123,6 +123,7 @@ public abstract class AbstractEventParser<EVENT> extends AbstractCanalLifeCycle 
         return true;
     }
 
+
     protected void afterDump(ErosaConnection connection) {
     }
 
