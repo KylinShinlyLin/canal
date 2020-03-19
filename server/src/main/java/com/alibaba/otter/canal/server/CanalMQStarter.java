@@ -62,7 +62,7 @@ public class CanalMQStarter {
 
             String[] dsts = StringUtils.split(destinations, ",");
             for (String destination : dsts) {
-                logger.info("启动mqworker线程：{}", destination);
+                logger.info("启动MQworker线程：{}", destination);
                 destination = destination.trim();
                 CanalMQRunnable canalMQRunnable = new CanalMQRunnable(destination);
                 canalMQWorks.put(destination, canalMQRunnable);
